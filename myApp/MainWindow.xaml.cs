@@ -1,26 +1,14 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Security;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Documents.DocumentStructures;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System.IO;
-using static System.Net.WebRequestMethods;
-using System.Timers;
 
 namespace myApp
 {
@@ -31,44 +19,58 @@ namespace myApp
     public partial class MainWindow : Window
     {
         Dictionary<string, BitmapImage> dict = new();
-        string folderPath = "C:\\";
+        const string SavePath = "SavePath";
+        string FolderPath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+
+
+        
         bool timeOver = false;
 
         public MainWindow()
         {
             InitializeComponent();
 
+            if (File.Exists(SavePath))
+            {
+                string savedPath = File.ReadAllText(SavePath);
+
+                if (Directory.Exists(savedPath))
+                {
+                    FolderPath = savedPath;
+                }
+            }
+
             LoadFolder();
-            //LoadFolderDank();
             xlistbox.ItemsSource = dict.Keys;
-            xtextbox.Text = folderPath;
+            xtextbox.Text = FolderPath;
         }
+
         private void listbox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            try
+            if (xlistbox.SelectedItem == null)
             {
-                BitmapImage? img;
-                string? file = (xlistbox.SelectedItem.ToString());
-
-                dict.TryGetValue(file, out img);
-
-                ximage.Source = img;
-
-            }
-            catch (NullReferenceException)
-            {
+                Debug.WriteLine("THIS HAPPENED!");
                 return;
             }
+     
+            BitmapImage? img;
+            string file = (xlistbox.SelectedItem.ToString());
+
+            if (dict.TryGetValue(file, out img))
+            {
+                ximage.Source = img;
+            }
+
         }
 
         private void FolderButton_Clicked(object sender, RoutedEventArgs e)
         {
             var dialog = new CommonOpenFileDialog();
-            dialog.InitialDirectory = folderPath;
+            dialog.InitialDirectory = FolderPath;
             dialog.IsFolderPicker = true;
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                folderPath = dialog.FileName;
+                FolderPath = dialog.FileName;
                 LoadFolder();
 
                 xtextbox.Text = dialog.FileName;
@@ -79,17 +81,18 @@ namespace myApp
         private void LoadFolder()
         {
             dict = new Dictionary<string, BitmapImage>();
-            IEnumerable<string> files = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.TopDirectoryOnly).Where(s => s.EndsWith(".jpeg") || s.EndsWith(".jpg") || s.EndsWith(".png"));
+            IEnumerable<string> files = Directory.EnumerateFiles(FolderPath, "*.*", SearchOption.TopDirectoryOnly).Where(s => s.EndsWith(".jpeg") || s.EndsWith(".jpg") || s.EndsWith(".png"));
 
             foreach (string file in files)
             {
-                var hello = new BitmapImage(new Uri(@$"{file}"));
-                string fileName = file.Remove(0, folderPath.Length + 1);
-                dict.Add(fileName, hello);
+                var image = new BitmapImage(new Uri(@$"{file}"));
+                string fileName = file.Remove(0, FolderPath.Length + 1);
+                dict.Add(fileName, image);
 
                 Debug.WriteLine(file);
             }
             xlistbox.ItemsSource = dict.Keys;
+            File.WriteAllText(SavePath, FolderPath);
         }
 
         bool mouseDown = false; // Set to 'true' when mouse is held down.
@@ -125,7 +128,7 @@ namespace myApp
             selectionBox.Visibility = Visibility.Visible;
         }
 
-        private void Grid_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Grid_MouseReleased(object sender, MouseButtonEventArgs e)
         {
             if (noCropping)
             {
@@ -201,7 +204,12 @@ namespace myApp
             }
 
 
-            if (imgX > 0 && imgY > 0 && width > 0 && height > 0 && imgX + width < source.PixelWidth && imgY + height < source.PixelHeight)
+            if (imgX > 0 && 
+                imgY > 0 && 
+                width > 0 && 
+                height > 0 && 
+                imgX + width < source.PixelWidth && 
+                imgY + height < source.PixelHeight)
             {
                 // Create a CroppedBitmap based off of a xaml defined resource.
                 CroppedBitmap cb = new CroppedBitmap(
@@ -215,6 +223,7 @@ namespace myApp
 
         private void Grid_MouseMove(object sender, MouseEventArgs e)
         {
+            Debug.WriteLine("Trigger Grid_MouseMove");
             if (timeOver)
             {
                 xsaveinfo.Text = "";
@@ -285,8 +294,6 @@ namespace myApp
                 Canvas.SetTop(selectionBox, mouseDownPos.Y - selectionBox.Height);
             }
 
-
-
         }
 
         private void ximage_MouseEnter(object sender, MouseEventArgs e)
@@ -316,14 +323,8 @@ namespace myApp
                     encoder.Save(fileStream);
                 }
 
-                //using (var fileStream = new FileStream($"F:\\Unity\\Mobile Game - kopia\\Assets\\Resources\\{xlistbox.SelectedValue}\\portrait.png", FileMode.Create))
-                //{
-                //    encoder.Save(fileStream);
-                //}
-
                 xsaveinfo.Text = "Save succesfull";
                 xsaveinfo.Background = new SolidColorBrush(Colors.Green);
-
 
             }
             catch (ArgumentNullException)

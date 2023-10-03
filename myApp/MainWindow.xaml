@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:myApp"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid x:Name="theGrid" Background="AliceBlue" MouseDown="Grid_MouseDown" MouseUp="Grid_MouseUp" MouseMove="Grid_MouseMove">
+    <Grid x:Name="theGrid" Background="AliceBlue" MouseDown="Grid_MouseDown" MouseUp="Grid_MouseReleased" MouseMove="Grid_MouseMove">
 
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250" />
