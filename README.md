@@ -1,3 +1,3 @@
 # myApp
 
-Older wpf project for croping images quick
+Program for quickly cropping images built using wpf
